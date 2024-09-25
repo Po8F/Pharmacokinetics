@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import models
 import sys
+import shutil
+from config import TEMP_FOLDER_PATH
+
 
 def resource_path(relative_path):
     """取得資源的絕對路徑，適用於開發和打包後的環境"""
@@ -17,6 +20,7 @@ def resource_path(relative_path):
 
 
 PLACEHOLDER_IMAGE = resource_path("image/placeholder_image.png")
+
 
 def get_sheet_names(file_path):
     """讀取 Excel 檔案中的工作表名稱"""
@@ -169,5 +173,62 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, custom_title):
         0], prompt_message
 
 
-def save_result():
-    a = 1
+def save_file(title_name, one_names, two_names, one_values, two_values):
+    if not title_name:
+        title_name = 'test'
+
+    # 設定儲存的目標資料夾
+    saving_path = os.path.join(TEMP_FOLDER_PATH, title_name)
+
+    # 檢查並創建儲存資料夾
+    if not os.path.exists(saving_path):
+        os.makedirs(saving_path)
+
+    # 定義暫存檔案路徑
+    temp_one_compartment_path = os.path.join(TEMP_FOLDER_PATH, 'one_compartment_model_ln.png')
+    temp_two_compartment_path = os.path.join(TEMP_FOLDER_PATH, 'two_compartment_model.png')
+
+    # 定義新的檔名和儲存路徑
+    new_one_compartment_path = os.path.join(saving_path, f'one_compartment_{title_name}.png')
+    new_two_compartment_path = os.path.join(saving_path, f'two_compartment_{title_name}.png')
+
+    # 檢查暫存圖片是否存在，並進行複製和重命名
+    if os.path.exists(temp_one_compartment_path):
+        shutil.copy(temp_one_compartment_path, new_one_compartment_path)
+        print(f"一室模型圖片已儲存至: {new_one_compartment_path}")
+    else:
+        print(f"未找到暫存的一室模型圖片: {temp_one_compartment_path}")
+
+    if os.path.exists(temp_two_compartment_path):
+        shutil.copy(temp_two_compartment_path, new_two_compartment_path)
+        print(f"二室模型圖片已儲存至: {new_two_compartment_path}")
+    else:
+        print(f"未找到暫存的二室模型圖片: {temp_two_compartment_path}")
+
+    # 分割名稱和值
+    one_names_list = one_names.strip().split('\n')
+    one_values_list = one_values.strip().split('\n')
+
+    two_names_list = two_names.strip().split('\n')
+    two_values_list = two_values.strip().split('\n')
+
+    # 構建 DataFrame
+    one_compartment_data = pd.DataFrame({
+        'Parameter': one_names_list,
+        'Value': one_values_list
+    })
+
+    two_compartment_data = pd.DataFrame({
+        'Parameter': two_names_list,
+        'Value': two_values_list
+    })
+
+    # 定義 Excel 檔案路徑
+    excel_path = os.path.join(saving_path, f'{title_name}.xlsx')
+
+    # 使用 ExcelWriter 將一室和二室模型寫入不同的工作表
+    with pd.ExcelWriter(excel_path, engine='xlsxwriter') as writer:
+        one_compartment_data.to_excel(writer, sheet_name='One Compartment Model', index=False)
+        two_compartment_data.to_excel(writer, sheet_name='Two Compartment Model', index=False)
+
+    print(f"數據已儲存至: {excel_path}")

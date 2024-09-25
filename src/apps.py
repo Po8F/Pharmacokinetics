@@ -87,7 +87,10 @@ with gr.Blocks() as demo:
                  title_input, x_unit, y_unit]
     )
     save_button.click(
-
+        file_processor.save_file,
+        inputs=[title_input, one_model_value_name, two_model_value_name, one_model_value_output,
+                two_model_value_output],
+        outputs=[]
     )
 
 demo.launch(share=False, inbrowser=True)

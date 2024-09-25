@@ -1,10 +1,22 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import platform
+from config import TEMP_FOLDER_PATH
+
+# 根據操作系統設置字體
+if platform.system() == 'Darwin':  # macOS
+    plt.rcParams['font.sans-serif'] = ['PingFang HK']  # 使用 PingFang HK 字體來顯示中文
+elif platform.system() == 'Windows':  # Windows
+    plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 使用微軟雅黑字體顯示中文
+else:
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']  # Linux 或其他系統的默認字體
+
+plt.rcParams['axes.unicode_minus'] = False  # 正常顯示負號
 
 
-def plot_one_compartment(time, cp, new_time_range, predicted_cp, x_unit, y_unit, custom_title="",
-                         filename_ln='one_compartment_model_ln.png'):
+def plot_one_compartment(time, cp, new_time_range, predicted_cp, x_unit, y_unit, custom_title=""):
     title = f'One Compartment Model - {custom_title}' if custom_title else 'One Compartment Model'
+    filename = f'{TEMP_FOLDER_PATH}/one_compartment_model_ln.png'
 
     # 繪製實際藥物濃度(自然對數)與預測藥物濃度
     plt.figure(figsize=(10, 6))
@@ -14,13 +26,14 @@ def plot_one_compartment(time, cp, new_time_range, predicted_cp, x_unit, y_unit,
     plt.ylabel(f'藥物濃度 Cp ({y_unit})')
     plt.title(title)
     plt.legend()
-    plt.savefig(filename_ln, dpi=300)
+    plt.savefig(filename, dpi=300)
     plt.close()
 
 
 def plot_two_compartment(time, cp, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b, x_unit,
-                         y_unit, custom_title="", filename='two_compartment_model.png'):
+                         y_unit, custom_title=""):
     title = f'Two Compartment Model - {custom_title}' if custom_title else 'Two Compartment Model'
+    filename = f'{TEMP_FOLDER_PATH}/two_compartment_model.png'
 
     min_predicted_cp_b = np.min(np.exp(predicted_cp_b))
     # 設定 y 軸範圍

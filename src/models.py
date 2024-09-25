@@ -1,11 +1,6 @@
 import numpy as np
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
 from image_processor import plot_one_compartment, plot_two_compartment
-
-# 設定 matplotlib 使用的中文字體（例如，PingFang HK 字體）
-plt.rcParams['font.sans-serif'] = ['PingFang HK']  # 使用 PingFang HK 字體來顯示中文
-plt.rcParams['axes.unicode_minus'] = False  # 正常顯示負號
 
 
 # 定義線性回歸函數
