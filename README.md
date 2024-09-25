@@ -7,7 +7,9 @@ PharmacokineticAnalysis/
 │   ├── image_processor.py      # 圖表生成模組
 │   ├── file_processor.py       # 資料處理模組
 │   ├── GPTtest.py              # 測試用(可忽略)
+│   ├── config.py               # 路徑設定
 ├── image/                      # 圖檔資料
 │   ├── placeholder_image.png   # 佔位圖
 ├── requirements.txt            # 函式庫要求
+├── .gitignore                  # github設定
 └── README.md                   # 專案文檔
