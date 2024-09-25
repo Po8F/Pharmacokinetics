@@ -57,8 +57,7 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, custom_title="", ):
         'AUC(0-finity)': auc_total
     }
 
-    return results, ['one_compartment_model_ln.png',
-                     'one_compartment_model.png'],  # 'One-compartment model analysis successful.'  # 返回計算結果和圖像
+    return results, ['PharmacokineticAnalysis/one_compartment_model_ln.png'],  # 'One-compartment model analysis successful.'  # 返回計算結果和圖像
 
 
 # 二室模型函數
@@ -162,4 +161,4 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, custom_title=""):
         'Cmax': max(cp)
     }
 
-    return results, ['two_compartment_model.png'],  # 'Two-compartment model analysis successful.'  # 返回計算結果和圖像
+    return results, ['PharmacokineticAnalysis/two_compartment_model.png'],  # 'Two-compartment model analysis successful.'  # 返回計算結果和圖像
