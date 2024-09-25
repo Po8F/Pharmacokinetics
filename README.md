@@ -12,4 +12,6 @@ PharmacokineticAnalysis/
 │   ├── placeholder_image.png   # 佔位圖
 ├── requirements.txt            # 函式庫要求
 ├── .gitignore                  # github設定
+├── apps_MacOS.spec             # MacOS打包設定檔     
+├── apps_Windows.spec           # Windows打包設定檔
 └── README.md                   # 專案文檔
