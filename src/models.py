@@ -7,7 +7,7 @@ from image_processor import plot_one_compartment, plot_two_compartment
 def linear_regression(time, cp, time_total):
     x = sm.add_constant(time)  # 添加常數項 (截距項)
     y = cp  # 藥物濃度
-    model = sm.OLS(y, x)  # 使用普通最小二乘法建立回歸模型
+    model = sm.OLS(y, x)  # 使用普通最小平方法建立回歸模型
     results = model.fit()  # 擬合模型
 
     # print(results.summary())  # 打印回歸結果摘要
