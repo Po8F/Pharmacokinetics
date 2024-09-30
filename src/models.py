@@ -25,12 +25,13 @@ def linear_regression(time, cp, time_total):
 
 
 # 一室模型函數
-def one_compartment_model(time, cp, dose, x_unit, y_unit, custom_title="", ):
+def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_title="", ):
     ln_cp = np.log(cp)  # 計算藥物濃度的自然對數
     time_total = max(time)  # 獲取最大時間
     predicted_cp, ln_cp_0, slope, new_time_range = linear_regression(time, ln_cp, time_total)  # 進行線性回歸，取得預測結果
 
-    plot_one_compartment(time, cp, new_time_range, predicted_cp, x_unit, y_unit, custom_title=custom_title)
+    plot_one_compartment(time, cp, dose, new_time_range, predicted_cp, x_unit, y_unit, dose_unit,
+                         custom_title=custom_title)
 
     # 計算 AUC (區域下面積)
     auc_observed = np.trapz(cp, time)  # 使用梯形法則計算觀察到的 AUC
@@ -57,14 +58,20 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, custom_title="", ):
         'AUC(0-finity)': auc_total
     }
 
-    return results, ['PharmacokineticAnalysis/one_compartment_model_ln.png'],  # 'One-compartment model analysis successful.'  # 返回計算結果和圖像
+    return results, [
+        'PharmacokineticAnalysis/one_compartment_model_ln.png'],  # 'One-compartment model analysis successful.'  # 返回計算結果和圖像
 
 
 # 二室模型函數
-def two_compartment_model(time, cp, dose, x_unit, y_unit, custom_title=""):
-    ln_cp = np.log(cp)  # 計算藥物濃度的自然對數
-    ln_cp_b_dataset = ln_cp[-3:]  # 取最後三個數據點作為後段回歸
-    time_b_dataset = time[-3:]  # 取最後三個時間點
+def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_point, custom_title=""):
+    # 計算藥物濃度的自然對數
+    ln_cp = np.log(cp)
+
+    # 找到 inflection_point 在 time 數組中的索引
+    inflection_index = np.where(time == inflection_point)[0][0]
+    # 取包含 inflection_point 本身及其後的所有數據點作為後段回歸
+    ln_cp_b_dataset = ln_cp[inflection_index:]  # 計算藥物濃度的自然對數
+    time_b_dataset = time[inflection_index:]
 
     # 如果後段資料不足，則回傳錯誤
     if len(time_b_dataset) < 2 or len(ln_cp_b_dataset) < 2:
@@ -115,8 +122,8 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, custom_title=""):
     new_time_range_a = new_time_range_a[valid_indices_a]
     predicted_cp_a = predicted_cp_a[valid_indices_a]
 
-    plot_two_compartment(time, cp, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b, x_unit,
-                         y_unit, custom_title=custom_title)
+    plot_two_compartment(time, cp, dose, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b,
+                         x_unit, y_unit, dose_unit, custom_title=custom_title)
 
     # 計算相關參數
     alpha = -a_slope
@@ -161,4 +168,5 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, custom_title=""):
         'Cmax': max(cp)
     }
 
-    return results, ['PharmacokineticAnalysis/two_compartment_model.png'],  # 'Two-compartment model analysis successful.'  # 返回計算結果和圖像
+    return results, [
+        'PharmacokineticAnalysis/two_compartment_model.png'],  # 'Two-compartment model analysis successful.'  # 返回計算結果和圖像

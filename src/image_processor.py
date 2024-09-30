@@ -14,8 +14,8 @@ else:
 plt.rcParams['axes.unicode_minus'] = False  # 正常顯示負號
 
 
-def plot_one_compartment(time, cp, new_time_range, predicted_cp, x_unit, y_unit, custom_title=""):
-    title = f'One Compartment Model - {custom_title}' if custom_title else 'One Compartment Model'
+def plot_one_compartment(time, cp, dose, new_time_range, predicted_cp, x_unit, y_unit, dose_unit, custom_title=""):
+    title = f'One Compartment Model(dose : {dose} {dose_unit}) - {custom_title}' if custom_title else f'One Compartment Model(dose : {dose} {dose_unit})'
     filename = f'{TEMP_FOLDER_PATH}/one_compartment_model_ln.png'
 
     # 繪製實際藥物濃度(自然對數)與預測藥物濃度
@@ -30,9 +30,9 @@ def plot_one_compartment(time, cp, new_time_range, predicted_cp, x_unit, y_unit,
     plt.close()
 
 
-def plot_two_compartment(time, cp, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b, x_unit,
-                         y_unit, custom_title=""):
-    title = f'Two Compartment Model - {custom_title}' if custom_title else 'Two Compartment Model'
+def plot_two_compartment(time, cp, dose, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b,
+                         x_unit, y_unit, dose_unit, custom_title=""):
+    title = f'Two Compartment Model(dose : {dose} {dose_unit}) - {custom_title}' if custom_title else f'Two Compartment Model(dose : {dose} {dose_unit})'
     filename = f'{TEMP_FOLDER_PATH}/two_compartment_model.png'
 
     min_predicted_cp_b = np.min(np.exp(predicted_cp_b))

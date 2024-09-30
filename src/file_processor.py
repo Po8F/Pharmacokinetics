@@ -29,34 +29,54 @@ def get_sheet_names(file_path):
     return return_sheet_name  # 回傳工作表名稱列表
 
 
-def process_file(file_path, sheet_name, model_type, x_unit, y_unit, custom_title):
+def get_time_columns(file_path, sheet_name):
+    """讀取 Excel 檔案中的工作表內的time欄位"""
+    # 加載工作表
+    data = pd.read_excel(file_path, sheet_name=sheet_name)
+    # 將所有欄位名稱轉為小寫，確保可以正確提取 'time' 欄位
+    data.columns = data.columns.str.lower()
+    # 獲取 'time' 欄位中的所有值，去除重複項並排序
+    unique_times = sorted(data['time'].drop_duplicates())
+    return unique_times
+
+
+def process_file(file_path, sheet_name, model_type, x_unit, y_unit, dose_unit, inflection_point, custom_title):
     prompt_msg = ""  # 初始化提示訊息
     result = ""
     file_paths = ""
 
     try:
-        # 讀取 Excel 資料
+        # 讀取 Excel 資料，並將欄位名稱轉為小寫
         data = pd.read_excel(file_path, sheet_name=sheet_name)
+        data.columns = data.columns.str.lower()  # 將所有欄位名稱轉為小寫
         prompt_msg += f"讀取{model_type}資料成功\n"  # 記錄資料讀取成功
 
-        # 確認是否存在 'Time' 和 'Cp' 欄位
-        if 'Time' not in data.columns or 'Cp' not in data.columns:
-            return {"Error": "'Time' 或 'Cp' 欄位不存在，請檢查檔案格式。"}, [
+        # 確認是否存在 'time' 和 'cp' 欄位
+        if 'time' not in data.columns or 'cp' not in data.columns:
+            return {"Error": "'time' 或 'cp' 欄位不存在，請檢查檔案格式。"}, [
                 PLACEHOLDER_IMAGE], prompt_msg + '輸入資料格式錯誤\n請確認資料表為[Time][Cp][Dose]\n'
 
         prompt_msg += "確認欄位成功\n"  # 記錄確認欄位成功
 
+        # 刪除 'cp' 欄位中為 N/A 的行
+        data = data.dropna(subset=['cp'])
+        prompt_msg += "清理 'cp' 欄位中的 N/A 值成功\n"  # 記錄清理成功
+
+        # 按照 'time' 欄位進行排序，保持 time 和 cp 對應
+        data = data.sort_values(by='time').reset_index(drop=True)
+        prompt_msg += "按照時間順序排序成功\n"  # 記錄排序成功
+
         # 將資料轉換為 NumPy 陣列
-        time = data['Time'].to_numpy()  # 確保 "時間" 是 1D 陣列
-        c_p = data['Cp'].to_numpy()  # 確保 "藥物濃度 Cp" 是 1D 陣列
-        dose = data['Dose'].to_numpy()  # 讀取整個劑量數據
+        time = data['time'].to_numpy()  # 確保 "時間" 是 1D 陣列
+        c_p = data['cp'].to_numpy()  # 確保 "藥物濃度 Cp" 是 1D 陣列
+        dose = data['dose'].to_numpy()  # 讀取整個劑量數據
 
         # 刪除 Dose 為零或空值的行
         valid_indices = ~np.isnan(dose) & (dose != 0)
         if valid_indices.any():
             dose = dose[valid_indices][0]  # 提取過濾後的第一個有效劑量值
         else:
-            return {"Error": "無有效劑量數據。"}, [PLACEHOLDER_IMAGE], prompt_msg + '請確認[Dose]欄位下只有一個有效值\n'
+            return {"Error": "無有效劑量數據。"}, [PLACEHOLDER_IMAGE], prompt_msg + '請確認[dose]欄位下只有一個有效值\n'
 
         prompt_msg += "劑量處理成功\n"  # 記錄劑量處理成功
 
@@ -68,10 +88,11 @@ def process_file(file_path, sheet_name, model_type, x_unit, y_unit, custom_title
 
         # 根據選擇的模型類型調用不同的模型函數
         if model_type == "一室模型":
-            result, file_paths = models.one_compartment_model(time, c_p, dose, x_unit, y_unit, custom_title)
+            result, file_paths = models.one_compartment_model(time, c_p, dose, x_unit, y_unit, dose_unit, custom_title)
             prompt_msg += "一室模型運算成功\n"
         elif model_type == "二室模型":
-            result, file_paths = models.two_compartment_model(time, c_p, dose, x_unit, y_unit, custom_title)
+            result, file_paths = models.two_compartment_model(time, c_p, dose, x_unit, y_unit, dose_unit,
+                                                              inflection_point, custom_title)
             prompt_msg += "二室模型運算成功\n"
 
         # 如果模型返回 None，處理為錯誤
@@ -84,13 +105,15 @@ def process_file(file_path, sheet_name, model_type, x_unit, y_unit, custom_title
         return {"Error": f"模型計算出現錯誤: {e}"}, [PLACEHOLDER_IMAGE], prompt_msg + f"模型計算出現錯誤: {e}\n"
 
 
-def run_interface(file_path, sheet_name, x_unit, y_unit, custom_title):
+def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_point, custom_title):
     # 呼叫處理函數並將結果格式化為輸出
     results_one, image_paths_one, message_one = process_file(file_path, sheet_name, "一室模型", x_unit, y_unit,
-                                                             custom_title)
+                                                             dose_unit, inflection_point, custom_title)
+
     prompt_message = message_one
     results_two, image_paths_two, message_two = process_file(file_path, sheet_name, "二室模型", x_unit, y_unit,
-                                                             custom_title)
+                                                             dose_unit, inflection_point, custom_title)
+
     prompt_message += message_two
 
     # 一室模型 名稱
