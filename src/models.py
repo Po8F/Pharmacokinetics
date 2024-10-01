@@ -25,13 +25,13 @@ def linear_regression(time, cp, time_total):
 
 
 # 一室模型函數
-def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_title="", ):
+def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_title="", average=False):
     ln_cp = np.log(cp)  # 計算藥物濃度的自然對數
     time_total = max(time)  # 獲取最大時間
     predicted_cp, ln_cp_0, slope, new_time_range = linear_regression(time, ln_cp, time_total)  # 進行線性回歸，取得預測結果
 
     plot_one_compartment(time, cp, dose, new_time_range, predicted_cp, x_unit, y_unit, dose_unit,
-                         custom_title=custom_title)
+                         custom_title=custom_title, average=average)
 
     # 計算 AUC (區域下面積)
     auc_observed = np.trapz(cp, time)  # 使用梯形法則計算觀察到的 AUC
@@ -58,19 +58,21 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_titl
         'AUC(0-finity)': auc_total
     }
 
-    return results, [
-        'PharmacokineticAnalysis/one_compartment_model_ln.png'],  # 'One-compartment model analysis successful.'  # 返回計算結果和圖像
+    # 修改 return 部分，根據 average 參數選擇不同的圖像名稱
+    filename = 'PharmacokineticAnalysis/one_compartment_model_ln_avg.png' if average else 'PharmacokineticAnalysis/one_compartment_model_ln.png'
+
+    return results, [filename]  # 返回計算結果和圖像
 
 
 # 二室模型函數
-def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_point, custom_title=""):
+def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_point, custom_title="", average=False):
     # 計算藥物濃度的自然對數
     ln_cp = np.log(cp)
 
     # 找到 inflection_point 在 time 數組中的索引
     inflection_index = np.where(time == inflection_point)[0][0]
     # 取包含 inflection_point 本身及其後的所有數據點作為後段回歸
-    ln_cp_b_dataset = ln_cp[inflection_index:]  # 計算藥物濃度的自然對數
+    ln_cp_b_dataset = ln_cp[inflection_index:]
     time_b_dataset = time[inflection_index:]
 
     # 如果後段資料不足，則回傳錯誤
@@ -96,12 +98,11 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
     # 進行前段回歸
     for i in range(len(cp)):
         if cp[i] > cp_i[i]:  # 當實際濃度大於 cp_i 時，進行回歸
-            # print(cp[i], cp_i[i])
             x = np.log(cp[i] - cp_i[i])
-            # print(f'x: {x}')
-            if x >= 0:
-                ln_cp_a_dataset.append(ln_cp[i])
-                time_a_dataset.append(time[i])
+            if x < 0:
+                break
+            ln_cp_a_dataset.append(ln_cp[i])
+            time_a_dataset.append(time[i])
 
     ln_cp_a_dataset = np.array(ln_cp_a_dataset).flatten()  # 將前段回歸資料展平
     time_a_dataset = np.array(time_a_dataset).flatten()
@@ -109,12 +110,11 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
     # 如果前段資料不足，則回傳錯誤
     if len(time_a_dataset) < 2 or len(ln_cp_a_dataset) < 2:
         print("Error: 此資料集不適用於model3")
-        return  # '', '', 'The two-compartment model analysis does not fit this dataset.'
+        return
 
     # 進行前段回歸
     predicted_cp_a, ln_a, a_slope, new_time_range_a = linear_regression(time_a_dataset, ln_cp_a_dataset, time_total)
     a = np.exp(ln_a)  # 計算前段回歸的 a 參數
-    # print(f'a = {a}, alpha = {a_slope}, b = {b}, beta = {b_slope}')
 
     # 去掉不符合的數據點
     min_predicted_cp_b = np.min(np.exp(predicted_cp_b))
@@ -123,7 +123,7 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
     predicted_cp_a = predicted_cp_a[valid_indices_a]
 
     plot_two_compartment(time, cp, dose, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b,
-                         x_unit, y_unit, dose_unit, custom_title=custom_title)
+                         x_unit, y_unit, dose_unit, custom_title=custom_title, average=average)
 
     # 計算相關參數
     alpha = -a_slope
@@ -168,5 +168,7 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
         'Cmax': max(cp)
     }
 
-    return results, [
-        'PharmacokineticAnalysis/two_compartment_model.png'],  # 'Two-compartment model analysis successful.'  # 返回計算結果和圖像
+    # 修改 return 部分，根據 average 參數選擇不同的圖像名稱
+    filename = 'PharmacokineticAnalysis/two_compartment_model_avg.png' if average else 'PharmacokineticAnalysis/two_compartment_model.png'
+
+    return results, [filename]  # 返回計算結果和圖像

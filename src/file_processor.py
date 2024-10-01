@@ -40,7 +40,8 @@ def get_time_columns(file_path, sheet_name):
     return unique_times
 
 
-def process_file(file_path, sheet_name, model_type, x_unit, y_unit, dose_unit, inflection_point, custom_title):
+def process_file(file_path, sheet_name, model_type, x_unit, y_unit, dose_unit, inflection_point, custom_title,
+                 average=False):
     prompt_msg = ""  # 初始化提示訊息
     result = ""
     file_paths = ""
@@ -66,6 +67,11 @@ def process_file(file_path, sheet_name, model_type, x_unit, y_unit, dose_unit, i
         data = data.sort_values(by='time').reset_index(drop=True)
         prompt_msg += "按照時間順序排序成功\n"  # 記錄排序成功
 
+        # 如果需要平均值的分析，将相同 time 的 cp 值取平均
+        if average:
+            data = data.groupby('time', as_index=False).agg({'cp': 'mean', 'dose': 'first'})
+            prompt_msg += "相同時間點的 'cp' 已取平均值\n"  # 記錄取平均值成功
+
         # 將資料轉換為 NumPy 陣列
         time = data['time'].to_numpy()  # 確保 "時間" 是 1D 陣列
         c_p = data['cp'].to_numpy()  # 確保 "藥物濃度 Cp" 是 1D 陣列
@@ -88,11 +94,12 @@ def process_file(file_path, sheet_name, model_type, x_unit, y_unit, dose_unit, i
 
         # 根據選擇的模型類型調用不同的模型函數
         if model_type == "一室模型":
-            result, file_paths = models.one_compartment_model(time, c_p, dose, x_unit, y_unit, dose_unit, custom_title)
+            result, file_paths = models.one_compartment_model(time, c_p, dose, x_unit, y_unit, dose_unit, custom_title,
+                                                              average)
             prompt_msg += "一室模型運算成功\n"
         elif model_type == "二室模型":
             result, file_paths = models.two_compartment_model(time, c_p, dose, x_unit, y_unit, dose_unit,
-                                                              inflection_point, custom_title)
+                                                              inflection_point, custom_title, average)
             prompt_msg += "二室模型運算成功\n"
 
         # 如果模型返回 None，處理為錯誤
@@ -106,30 +113,42 @@ def process_file(file_path, sheet_name, model_type, x_unit, y_unit, dose_unit, i
 
 
 def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_point, custom_title):
-    # 呼叫處理函數並將結果格式化為輸出
+    # 呼叫處理函數並將結果格式化為輸出 (原始數據)
     results_one, image_paths_one, message_one = process_file(file_path, sheet_name, "一室模型", x_unit, y_unit,
-                                                             dose_unit, inflection_point, custom_title)
-
+                                                             dose_unit, inflection_point, custom_title, average=False)
     prompt_message = message_one
     results_two, image_paths_two, message_two = process_file(file_path, sheet_name, "二室模型", x_unit, y_unit,
-                                                             dose_unit, inflection_point, custom_title)
-
+                                                             dose_unit, inflection_point, custom_title, average=False)
     prompt_message += message_two
 
-    # 一室模型 名稱
-    one_model_names = f"""
-    Slope:
-    k_e:
-    Half-life:
-    Intercept:
-    Initial Concentration:
-    Clearance:
-    Volume of Distribution (V_d):
-    AUC(0-t):
-    AUC(0-finity):
-    """
+    # 呼叫處理函數並將結果格式化為輸出 (平均值)
+    results_one_avg, image_paths_one_avg, message_one_avg = process_file(file_path, sheet_name, "一室模型", x_unit,
+                                                                         y_unit, dose_unit, inflection_point,
+                                                                         custom_title, average=True)
+    prompt_message += message_one_avg
+    results_two_avg, image_paths_two_avg, message_two_avg = process_file(file_path, sheet_name, "二室模型", x_unit,
+                                                                         y_unit, dose_unit, inflection_point,
+                                                                         custom_title, average=True)
+    prompt_message += message_two_avg
 
-    # 一室模型 數值
+    # 一室模型參數名稱模板
+    one_model_names_template = f"""
+        Slope:
+        k_e:
+        Half-life:
+        Intercept:
+        Initial Concentration:
+        Clearance:
+        Volume of Distribution (V_d):
+        AUC(0-t):
+        AUC(0-finity):
+        """
+
+    # 分別賦值給原始數據和平均數據
+    one_model_names = one_model_names_template
+    one_model_names_avg = one_model_names_template
+
+    # 一室模型數值
     one_model_values = f"""
     {results_one.get('slope', 'N/A')}
     {results_one.get('k_e', 'N/A')}
@@ -142,27 +161,44 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
     {results_one.get('AUC(0-finity)', 'N/A')}
     """
 
-    # 二室模型 名稱
-    two_model_names = f"""
-    a:
-    Alpha:
-    b:
-    Beta:
-    k_21:
-    k_10:
-    k_12:
-    Half-life Alpha:
-    Half-life Beta:
-    Half-life k21:
-    Half-life k10:
-    Half-life k12:
-    VDss:
-    Clearance:
-    AUC(0-t):
-    AUC(0-finity):
+    # 一室模型平均值數據
+    one_model_values_avg = f"""
+    {results_one_avg.get('slope', 'N/A')}
+    {results_one_avg.get('k_e', 'N/A')}
+    {results_one_avg.get('half_life', 'N/A')}
+    {results_one_avg.get('intercept', 'N/A')}
+    {results_one_avg.get('initial_concentration', 'N/A')}
+    {results_one_avg.get('clearance', 'N/A')}
+    {results_one_avg.get('VD', 'N/A')}
+    {results_one_avg.get('AUC(0-t)', 'N/A')}
+    {results_one_avg.get('AUC(0-finity)', 'N/A')}
     """
 
-    # 二室模型 數值
+    # 二室模型參數名稱模板
+    two_model_names_template = f"""
+        a:
+        Alpha:
+        b:
+        Beta:
+        k_21:
+        k_10:
+        k_12:
+        Half-life Alpha:
+        Half-life Beta:
+        Half-life k_21:
+        Half-life k_10:
+        Half-life k_12:
+        VDss:
+        Clearance:
+        AUC(0-t):
+        AUC(0-finity):
+        """
+
+    # 分別賦值給原始數據和平均數據
+    two_model_names = two_model_names_template
+    two_model_names_avg = two_model_names_template
+
+    # 二室模型數值
     two_model_values = f"""
     {results_two.get('a', 'N/A')}
     {results_two.get('alpha', 'N/A')}
@@ -182,6 +218,26 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
     {results_two.get('AUC(0-finity)', 'N/A')}
     """
 
+    # 二室模型平均值數據
+    two_model_values_avg = f"""
+    {results_two_avg.get('a', 'N/A')}
+    {results_two_avg.get('alpha', 'N/A')}
+    {results_two_avg.get('b', 'N/A')}
+    {results_two_avg.get('beta', 'N/A')}
+    {results_two_avg.get('k_21', 'N/A')}
+    {results_two_avg.get('k_10', 'N/A')}
+    {results_two_avg.get('k_12', 'N/A')}
+    {results_two_avg.get('half_life_alpha', 'N/A')}
+    {results_two_avg.get('half_life_beta', 'N/A')}
+    {results_two_avg.get('half_life_k21', 'N/A')}
+    {results_two_avg.get('half_life_k10', 'N/A')}
+    {results_two_avg.get('half_life_k12', 'N/A')}
+    {results_two_avg.get('VDss', 'N/A')}
+    {results_two_avg.get('clearance', 'N/A')}
+    {results_two_avg.get('AUC(0-t)', 'N/A')}
+    {results_two_avg.get('AUC(0-finity)', 'N/A')}
+    """
+
     # 根據模型結果的錯誤狀況來決定提示訊息
     if "Error" in results_one and "Error" in results_two:
         prompt_message += "一室模型和二室模型均出現錯誤。"
@@ -192,11 +248,15 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
     else:
         prompt_message += "一室模型和二室模型均成功完成。"
 
-    return one_model_names, one_model_values, image_paths_one[0], two_model_names, two_model_values, image_paths_two[
-        0], prompt_message
+    return (one_model_names_avg, one_model_values_avg, image_paths_one_avg[0],
+            one_model_names, one_model_values, image_paths_one[0],
+            two_model_names_avg, two_model_values_avg, image_paths_two_avg[0],
+            two_model_names, two_model_values, image_paths_two[0],
+            prompt_message)
 
 
-def save_file(title_name, one_names, two_names, one_values, two_values):
+def save_file(title_name, one_names, two_names, one_values, two_values,
+              one_names_avg, two_names_avg, one_values_avg, two_values_avg):
     if not title_name:
         title_name = 'test'
 
@@ -210,10 +270,14 @@ def save_file(title_name, one_names, two_names, one_values, two_values):
     # 定義暫存檔案路徑
     temp_one_compartment_path = os.path.join(TEMP_FOLDER_PATH, 'one_compartment_model_ln.png')
     temp_two_compartment_path = os.path.join(TEMP_FOLDER_PATH, 'two_compartment_model.png')
+    temp_one_compartment_avg_path = os.path.join(TEMP_FOLDER_PATH, 'one_compartment_model_ln_avg.png')
+    temp_two_compartment_avg_path = os.path.join(TEMP_FOLDER_PATH, 'two_compartment_model_avg.png')
 
     # 定義新的檔名和儲存路徑
     new_one_compartment_path = os.path.join(saving_path, f'one_compartment_{title_name}.png')
     new_two_compartment_path = os.path.join(saving_path, f'two_compartment_{title_name}.png')
+    new_one_compartment_avg_path = os.path.join(saving_path, f'one_compartment_avg_{title_name}.png')
+    new_two_compartment_avg_path = os.path.join(saving_path, f'two_compartment_avg_{title_name}.png')
 
     # 檢查暫存圖片是否存在，並進行複製和重命名
     if os.path.exists(temp_one_compartment_path):
@@ -228,22 +292,37 @@ def save_file(title_name, one_names, two_names, one_values, two_values):
     else:
         print(f"未找到暫存的二室模型圖片: {temp_two_compartment_path}")
 
-    # 分割名稱和值
-    one_names_list = one_names.strip().split('\n')
-    one_values_list = one_values.strip().split('\n')
+    if os.path.exists(temp_one_compartment_avg_path):
+        shutil.copy(temp_one_compartment_avg_path, new_one_compartment_avg_path)
+        print(f"平均值一室模型圖片已儲存至: {new_one_compartment_avg_path}")
+    else:
+        print(f"未找到暫存的平均值一室模型圖片: {temp_one_compartment_avg_path}")
 
-    two_names_list = two_names.strip().split('\n')
-    two_values_list = two_values.strip().split('\n')
+    if os.path.exists(temp_two_compartment_avg_path):
+        shutil.copy(temp_two_compartment_avg_path, new_two_compartment_avg_path)
+        print(f"平均值二室模型圖片已儲存至: {new_two_compartment_avg_path}")
+    else:
+        print(f"未找到暫存的平均值二室模型圖片: {temp_two_compartment_avg_path}")
 
-    # 構建 DataFrame
+    # 分割名稱和值，並去除多餘的空格
+    one_names_list = [name.strip() for name in one_names.strip().split('\n')]
+    one_values_list = [value.strip() for value in one_values.strip().split('\n')]
+    one_values_avg_list = [value.strip() for value in one_values_avg.strip().split('\n')]
+    two_names_list = [name.strip() for name in two_names.strip().split('\n')]
+    two_values_list = [value.strip() for value in two_values.strip().split('\n')]
+    two_values_avg_list = [value.strip() for value in two_values_avg.strip().split('\n')]
+
+    # 構建 DataFrame，格式為 [變數名][原始資料][平均值]
     one_compartment_data = pd.DataFrame({
         'Parameter': one_names_list,
-        'Value': one_values_list
+        'Original Value': one_values_list,
+        'Average Value': one_values_avg_list
     })
 
     two_compartment_data = pd.DataFrame({
         'Parameter': two_names_list,
-        'Value': two_values_list
+        'Original Value': two_values_list,
+        'Average Value': two_values_avg_list
     })
 
     # 定義 Excel 檔案路徑

@@ -1,6 +1,5 @@
 import file_processor
 import gradio as gr
-import pandas as pd
 
 
 def update_sheet_names(file_path):
@@ -22,8 +21,8 @@ def update_inflection_point(file_path, sheet_name):
 
 
 def reset_all():
-    one_model_output = ("", "", None,)
-    two_model_output = ("", "", None,)
+    one_model_output = ("", "", None, "", "", None)
+    two_model_output = ("", "", None, "", "", None)
     prompt_message = ("",)
     interface_output = (
         None,
@@ -49,7 +48,6 @@ with gr.Blocks() as demo:
         with gr.Column():
             sheet_name_input = gr.Dropdown(label="選擇工作表名稱", choices=[""], interactive=True,
                                            allow_custom_value=False)
-            # path_input = gr.Textbox(label="設定路徑", interactive=True)
             title_input = gr.Textbox(label="設定回歸圖標題", placeholder="請輸入資料實驗名稱(可留空)", interactive=True)
             with gr.Row():
                 x_unit = gr.Dropdown(label="X", choices=["Second", "Minute", "Hour", "day"], value="Minute",
@@ -71,21 +69,38 @@ with gr.Blocks() as demo:
 
     # 左右佈局：一室模型在左，二室模型在右
     with gr.Row():
-        # 一室模型佈局
+        # 一室模型平均值佈局
         with gr.Column():
-            gr.Markdown("### 一室模型結果")
-            image_output_one = gr.Image(label="一室模型圖表")
+            gr.Markdown("### 一室模型結果 (平均值)")
+            image_output_one_avg = gr.Image(label="一室模型圖表 (平均值)")
             with gr.Row():
-                one_model_value_name = gr.Textbox(label="一室模型參數", interactive=False, lines=10, scale=4)
-                one_model_value_output = gr.Textbox(label="輸出數值", interactive=False, lines=10, scale=6)
+                one_model_value_name_avg = gr.Textbox(label="一室模型參數 (平均值)", interactive=False, lines=10,
+                                                      scale=4)
+                one_model_value_output_avg = gr.Textbox(label="輸出數值 (平均值)", interactive=False, lines=10, scale=6)
+        # 二室模型平均值佈局
+        with gr.Column():
+            gr.Markdown("### 二室模型結果 (平均值)")
+            image_output_two_avg = gr.Image(label="二室模型圖表 (平均值)")
+            with gr.Row():
+                two_model_value_name_avg = gr.Textbox(label="二室模型參數 (平均值)", interactive=False, lines=10,
+                                                      scale=4)
+                two_model_value_output_avg = gr.Textbox(label="輸出數值 (平均值)", interactive=False, lines=10, scale=6)
+    with gr.Row():
+        # 一室模型原始數據佈局
+        with gr.Column():
+            gr.Markdown("### 一室模型結果 (原始數據)")
+            image_output_one = gr.Image(label="一室模型圖表 (原始數據)")
+            with gr.Row():
+                one_model_value_name = gr.Textbox(label="一室模型參數 (原始數據)", interactive=False, lines=10, scale=4)
+                one_model_value_output = gr.Textbox(label="輸出數值 (原始數據)", interactive=False, lines=10, scale=6)
 
-        # 二室模型佈局
+        # 二室模型原始數據佈局
         with gr.Column():
-            gr.Markdown("### 二室模型結果")
-            image_output_two = gr.Image(label="二室模型圖表")
+            gr.Markdown("### 二室模型結果 (原始數據)")
+            image_output_two = gr.Image(label="二室模型圖表 (原始數據)")
             with gr.Row():
-                two_model_value_name = gr.Textbox(label="二室模型參數", interactive=False, lines=10, scale=4)
-                two_model_value_output = gr.Textbox(label="輸出數值", interactive=False, lines=10, scale=6)
+                two_model_value_name = gr.Textbox(label="二室模型參數 (原始數據)", interactive=False, lines=10, scale=4)
+                two_model_value_output = gr.Textbox(label="輸出數值 (原始數據)", interactive=False, lines=10, scale=6)
 
     # 將更新下拉選單的函數綁定到檔案上傳事件
     file_input.change(update_sheet_names, inputs=file_input, outputs=sheet_name_input)
@@ -97,20 +112,29 @@ with gr.Blocks() as demo:
     run_button.click(
         file_processor.run_interface,
         inputs=[file_input, sheet_name_input, x_unit, y_unit, dose_unit, inflection_point, title_input],
-        outputs=[one_model_value_name, one_model_value_output, image_output_one, two_model_value_name,
-                 two_model_value_output, image_output_two, information_output]
+        outputs=[one_model_value_name_avg, one_model_value_output_avg, image_output_one_avg,
+                 one_model_value_name, one_model_value_output, image_output_one,
+                 two_model_value_name_avg, two_model_value_output_avg, image_output_two_avg,
+                 two_model_value_name, two_model_value_output, image_output_two,
+                 information_output]
     )
     reset_button.click(
         reset_all,
         inputs=[],
-        outputs=[one_model_value_name, one_model_value_output, image_output_one, two_model_value_name,
-                 two_model_value_output, image_output_two, information_output, file_input, sheet_name_input,
-                 title_input, x_unit, y_unit, dose_unit, inflection_point]
+        outputs=[one_model_value_name_avg, one_model_value_output_avg, image_output_one_avg,
+                 one_model_value_name, one_model_value_output, image_output_one,
+                 two_model_value_name_avg, two_model_value_output_avg, image_output_two_avg,
+                 two_model_value_name, two_model_value_output, image_output_two,
+                 information_output, file_input, sheet_name_input, title_input, x_unit, y_unit, dose_unit,
+                 inflection_point]
     )
     save_button.click(
         file_processor.save_file,
-        inputs=[title_input, one_model_value_name, two_model_value_name, one_model_value_output,
-                two_model_value_output],
+        inputs=[title_input,
+                one_model_value_name, two_model_value_name,
+                one_model_value_output, two_model_value_output,
+                one_model_value_name_avg, two_model_value_name_avg,
+                one_model_value_output_avg, two_model_value_output_avg],
         outputs=[]
     )
 
