@@ -10,8 +10,6 @@ def linear_regression(time, cp, time_total):
     model = sm.OLS(y, x)  # 使用普通最小平方法建立回歸模型
     results = model.fit()  # 擬合模型
 
-    # print(results.summary())  # 打印回歸結果摘要
-
     intercept = results.params[0]  # 截距
     slope = results.params[1]  # 斜率
 
@@ -21,7 +19,7 @@ def linear_regression(time, cp, time_total):
 
     predicted_cp = results.predict(new_x)  # 使用模型進行預測
 
-    return predicted_cp, intercept, slope, new_time_range  # 返回預測值、截距和斜率
+    return predicted_cp, round(intercept, 4), round(slope, 4), new_time_range  # 返回預測值、截距和斜率
 
 
 # 一室模型函數
@@ -36,7 +34,6 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_titl
     # 計算 AUC (區域下面積)
     auc_observed = np.trapz(cp, time)  # 使用梯形法則計算觀察到的 AUC
     auc_extrapolated = cp[-1] / (-slope)  # 計算外推的 AUC
-
     auc_total = auc_observed + auc_extrapolated  # 總 AUC = 觀察到的 AUC + 外推的 AUC
 
     cp_0 = np.exp(ln_cp_0)  # 初始濃度
@@ -47,15 +44,15 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_titl
 
     # 將結果打包成字典
     results = {
-        'slope': slope,
-        'k_e': k_e,
-        'half_life': half_life,
-        'intercept': ln_cp_0,
-        'initial_concentration': cp_0,
-        'clearance': c_l,
-        'VD': v_d,
-        'AUC(0-t)': auc_observed,
-        'AUC(0-finity)': auc_total
+        'slope': round(slope, 4),
+        'k_e': round(k_e, 4),
+        'half_life': round(half_life, 4),
+        'intercept': round(ln_cp_0, 4),
+        'initial_concentration': round(cp_0, 4),
+        'clearance': round(c_l, 4),
+        'VD': round(v_d, 4),
+        'AUC(0-t)': round(auc_observed, 4),
+        'AUC(0-finity)': round(auc_total, 4)
     }
 
     # 修改 return 部分，根據 average 參數選擇不同的圖像名稱
@@ -66,12 +63,10 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_titl
 
 # 二室模型函數
 def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_point, custom_title="", average=False):
-    # 計算藥物濃度的自然對數
     ln_cp = np.log(cp)
 
     # 找到 inflection_point 在 time 數組中的索引
     inflection_index = np.where(time == inflection_point)[0][0]
-    # 取包含 inflection_point 本身及其後的所有數據點作為後段回歸
     ln_cp_b_dataset = ln_cp[inflection_index:]
     time_b_dataset = time[inflection_index:]
 
@@ -80,43 +75,35 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
         print("Error: 此資料集不適用於model3")
         return
 
-    time_total = time[-1]  # 最大時間值
+    time_total = time[-1]
 
-    # 進行後段回歸
     predicted_cp_b, ln_b, b_slope, new_time_range_b = linear_regression(time_b_dataset, ln_cp_b_dataset, time_total)
-    b = np.exp(ln_b)  # 計算後段回歸的 b 參數
+    b = np.exp(ln_b)
 
-    # 計算 cp_i 值，用於前段回歸
-    cp_i = []
-    for t in time:
-        a = b * np.exp(b_slope * t)
-        cp_i.append(a)
+    cp_i = [b * np.exp(b_slope * t) for t in time]
     cp_i = np.array(cp_i).flatten()
 
     ln_cp_a_dataset = []
     time_a_dataset = []
-    # 進行前段回歸
+
     for i in range(len(cp)):
-        if cp[i] > cp_i[i]:  # 當實際濃度大於 cp_i 時，進行回歸
+        if cp[i] > cp_i[i]:
             x = np.log(cp[i] - cp_i[i])
             if x < 0:
                 break
             ln_cp_a_dataset.append(ln_cp[i])
             time_a_dataset.append(time[i])
 
-    ln_cp_a_dataset = np.array(ln_cp_a_dataset).flatten()  # 將前段回歸資料展平
+    ln_cp_a_dataset = np.array(ln_cp_a_dataset).flatten()
     time_a_dataset = np.array(time_a_dataset).flatten()
 
-    # 如果前段資料不足，則回傳錯誤
     if len(time_a_dataset) < 2 or len(ln_cp_a_dataset) < 2:
         print("Error: 此資料集不適用於model3")
         return
 
-    # 進行前段回歸
     predicted_cp_a, ln_a, a_slope, new_time_range_a = linear_regression(time_a_dataset, ln_cp_a_dataset, time_total)
-    a = np.exp(ln_a)  # 計算前段回歸的 a 參數
+    a = np.exp(ln_a)
 
-    # 去掉不符合的數據點
     min_predicted_cp_b = np.min(np.exp(predicted_cp_b))
     valid_indices_a = np.exp(predicted_cp_a) >= min_predicted_cp_b
     new_time_range_a = new_time_range_a[valid_indices_a]
@@ -125,7 +112,6 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
     plot_two_compartment(time, cp, dose, new_time_range_a, predicted_cp_a, new_time_range_b, predicted_cp_b, a, b,
                          x_unit, y_unit, dose_unit, custom_title=custom_title, average=average)
 
-    # 計算相關參數
     alpha = -a_slope
     beta = -b_slope
 
@@ -141,34 +127,31 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
     vd_ss = volume * (1 + (k_12 / k_21))
     c_l = k_10 * volume
 
-    # 計算AUC
     auc_observed = np.trapz(cp, time)
     auc_extrapolated = cp[-1] / (-b_slope)
     auc_total = auc_observed + auc_extrapolated
 
-    # 將結果打包成字典
     results = {
-        'a': a,
-        'alpha': alpha,
-        'b': b,
-        'beta': beta,
-        'k_21': k_21,
-        'k_10': k_10,
-        'k_12': k_12,
-        'half_life_alpha': half_life_alpha,
-        'half_life_beta': half_life_beta,
-        'half_life_k21': half_life_k21,
-        'half_life_k10': half_life_k10,
-        'half_life_k12': half_life_k12,
-        'AUC(0-t)': auc_observed,
-        'AUC(0-finity)': auc_total,
-        'Volume': volume,
-        'VDss': vd_ss,
-        'clearance': c_l,
-        'Cmax': max(cp)
+        'a': round(a, 4),
+        'alpha': round(alpha, 4),
+        'b': round(b, 4),
+        'beta': round(beta, 4),
+        'k_21': round(k_21, 4),
+        'k_10': round(k_10, 4),
+        'k_12': round(k_12, 4),
+        'half_life_alpha': round(half_life_alpha, 4),
+        'half_life_beta': round(half_life_beta, 4),
+        'half_life_k21': round(half_life_k21, 4),
+        'half_life_k10': round(half_life_k10, 4),
+        'half_life_k12': round(half_life_k12, 4),
+        'AUC(0-t)': round(auc_observed, 4),
+        'AUC(0-finity)': round(auc_total, 4),
+        'Volume': round(volume, 4),
+        'VDss': round(vd_ss, 4),
+        'clearance': round(c_l, 4),
+        'Cmax': round(max(cp), 4)
     }
 
-    # 修改 return 部分，根據 average 參數選擇不同的圖像名稱
     filename = 'PharmacokineticAnalysis/two_compartment_model_avg.png' if average else 'PharmacokineticAnalysis/two_compartment_model.png'
 
-    return results, [filename]  # 返回計算結果和圖像
+    return results, [filename]
