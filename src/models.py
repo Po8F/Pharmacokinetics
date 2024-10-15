@@ -1,7 +1,7 @@
 import numpy as np
 import statsmodels.api as sm
 from image_processor import plot_one_compartment, plot_two_compartment
-
+from config import TEMP_FOLDER_PATH
 
 # 定義線性回歸函數
 def linear_regression(time, cp, time_total):
@@ -56,7 +56,8 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_titl
     }
 
     # 修改 return 部分，根據 average 參數選擇不同的圖像名稱
-    filename = 'PharmacokineticAnalysis/one_compartment_model_ln_avg.png' if average else 'PharmacokineticAnalysis/one_compartment_model_ln.png'
+    filename = f'{TEMP_FOLDER_PATH}/one_compartment_model_ln_avg.png' if average else (
+        f'{TEMP_FOLDER_PATH}/one_compartment_model_ln.png')
 
     return results, [filename]  # 返回計算結果和圖像
 
@@ -152,6 +153,7 @@ def two_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, inflection_
         'Cmax': round(max(cp), 4)
     }
 
-    filename = 'PharmacokineticAnalysis/two_compartment_model_avg.png' if average else 'PharmacokineticAnalysis/two_compartment_model.png'
+    filename = f'{TEMP_FOLDER_PATH}/two_compartment_model_avg.png' if average else (
+        f'{TEMP_FOLDER_PATH}/two_compartment_model.png')
 
     return results, [filename]
