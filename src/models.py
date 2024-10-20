@@ -3,6 +3,7 @@ import statsmodels.api as sm
 from image_processor import plot_one_compartment, plot_two_compartment
 from config import TEMP_FOLDER_PATH
 
+
 # 定義線性回歸函數
 def linear_regression(time, cp, time_total):
     x = sm.add_constant(time)  # 添加常數項 (截距項)
@@ -26,7 +27,7 @@ def linear_regression(time, cp, time_total):
 def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_title="", average=False):
     ln_cp = np.log(cp)  # 計算藥物濃度的自然對數
     time_total = max(time)  # 獲取最大時間
-    predicted_cp, ln_cp_0, slope, new_time_range = linear_regression(time, ln_cp, time_total)  # 進行線性回歸，取得預測結果
+    predicted_cp, k_e, slope, new_time_range = linear_regression(time, ln_cp, time_total)  # 進行線性回歸，取得預測結果
 
     plot_one_compartment(time, cp, dose, new_time_range, predicted_cp, x_unit, y_unit, dose_unit,
                          custom_title=custom_title, average=average)
@@ -36,8 +37,8 @@ def one_compartment_model(time, cp, dose, x_unit, y_unit, dose_unit, custom_titl
     auc_extrapolated = cp[-1] / (-slope)  # 計算外推的 AUC
     auc_total = auc_observed + auc_extrapolated  # 總 AUC = 觀察到的 AUC + 外推的 AUC
 
+    ln_cp_0 = k_e
     cp_0 = np.exp(ln_cp_0)  # 初始濃度
-    k_e = -slope  # 消除速率常數
     v_d = dose / cp_0  # 分布容積
     half_life = 0.693 / k_e  # 半衰期
     c_l = k_e * v_d  # 清除率
