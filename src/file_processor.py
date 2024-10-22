@@ -255,8 +255,7 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
             prompt_message)
 
 
-def save_file(title_name, one_names, two_names, one_values, two_values,
-              one_names_avg, two_names_avg, one_values_avg, two_values_avg):
+def save_file(title_name, one_names, two_names, one_values, two_values, one_values_avg, two_values_avg):
     if not title_name:
         title_name = 'test'
 

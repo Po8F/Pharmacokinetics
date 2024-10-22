@@ -133,7 +133,6 @@ with gr.Blocks() as demo:
         inputs=[title_input,
                 one_model_value_name, two_model_value_name,
                 one_model_value_output, two_model_value_output,
-                one_model_value_name_avg, two_model_value_name_avg,
                 one_model_value_output_avg, two_model_value_output_avg],
         outputs=[]
     )
