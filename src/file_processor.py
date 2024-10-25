@@ -133,7 +133,6 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
 
     # 一室模型參數名稱模板
     one_model_names_template = f"""
-        Slope:
         k_e:
         Half-life:
         Intercept:
@@ -150,7 +149,6 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
 
     # 一室模型數值
     one_model_values = f"""
-    {results_one.get('slope', 'N/A')}
     {results_one.get('k_e', 'N/A')}
     {results_one.get('half_life', 'N/A')}
     {results_one.get('intercept', 'N/A')}
@@ -163,7 +161,6 @@ def run_interface(file_path, sheet_name, x_unit, y_unit, dose_unit, inflection_p
 
     # 一室模型平均值數據
     one_model_values_avg = f"""
-    {results_one_avg.get('slope', 'N/A')}
     {results_one_avg.get('k_e', 'N/A')}
     {results_one_avg.get('half_life', 'N/A')}
     {results_one_avg.get('intercept', 'N/A')}
